@@ -1,0 +1,25 @@
+# Logs
+Logs/
+*.log
+
+# PowerShell temp / transcript files
+*.tmp
+*.transcript
+
+# Backups created by Winix
+.winix_backups/
+.winix/
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# VS Code / editor settings
+.vscode/
+.idea/
+
+# Build artifacts
+*.zip
+*.tar.gz
+
+dev-example/
