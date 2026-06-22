@@ -11,6 +11,13 @@ param (
     [switch]$InstallAdvanced,
     [switch]$InstallAll,
 
+    # Per-tool advanced install flags
+    [switch]$InstallBat,
+    [switch]$InstallEza,
+    [switch]$InstallFd,
+    [switch]$InstallRipgrep,
+    [switch]$InstallZellij,
+
     # Advanced options
     [switch]$BuildFromSource,
     [switch]$SkipRestorePoint,
@@ -38,6 +45,7 @@ $script:ControlParams = @(
     'WhatIf', 'Confirm', 'Verbose', 'Debug',
     'Silent', 'Force', 'Wait',
     'InstallCore', 'InstallAdvanced', 'InstallAll',
+    'InstallBat', 'InstallEza', 'InstallFd', 'InstallRipgrep', 'InstallZellij',
     'BuildFromSource', 'SkipRestorePoint',
     'Uninstall', 'RollbackOS'
 )
@@ -131,7 +139,17 @@ if ($InstallAll) {
     $InstallAdvanced = $true
 }
 
-if (-not ($InstallCore -or $InstallAdvanced -or $Uninstall -or $RollbackOS)) {
+# -InstallAdvanced means all advanced tools; individual flags select specific tools.
+$anySpecificAdvanced = $InstallBat -or $InstallEza -or $InstallFd -or $InstallRipgrep -or $InstallZellij
+if ($InstallAdvanced) {
+    $InstallBat = $true
+    $InstallEza = $true
+    $InstallFd = $true
+    $InstallRipgrep = $true
+    $InstallZellij = $true
+}
+
+if (-not ($InstallCore -or $InstallAdvanced -or $anySpecificAdvanced -or $Uninstall -or $RollbackOS)) {
     $InstallCore = $true
 }
 
@@ -197,19 +215,19 @@ try {
         }
 
         # --- Advanced tools ---
-        if ($InstallAdvanced -or $InstallAll) {
+        if ($InstallBat -or $InstallEza -or $InstallFd -or $InstallRipgrep -or $InstallZellij) {
             $targetDir = 'C:\msys64\mingw64\bin'
             $downloaderArgs = @{ TargetDir = $targetDir }
             if ($BuildFromSource) {
                 $downloaderArgs['BuildFromSource'] = $true
             }
 
-            Write-WinixLog -Level Info -Message 'Installing advanced arsenal...'
-            & (Join-Path $script:ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs
-            & (Join-Path $script:ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs
-            & (Join-Path $script:ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs
-            # Zellij is optional and may require source build on Windows; keep it last.
-            & (Join-Path $script:ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs
+            Write-WinixLog -Level Info -Message 'Installing selected advanced tools...'
+            if ($InstallBat)       { & (Join-Path $script:ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs }
+            if ($InstallEza)       { & (Join-Path $script:ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs }
+            if ($InstallFd)        { & (Join-Path $script:ScriptsDir 'downloaders\Get-Fd.ps1') @downloaderArgs }
+            if ($InstallRipgrep)   { & (Join-Path $script:ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs }
+            if ($InstallZellij)    { & (Join-Path $script:ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs }
         }
 
         Write-WinixLog -Level Success -Message 'Project Winix installation flow completed.'
