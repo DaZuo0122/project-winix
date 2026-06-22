@@ -118,7 +118,8 @@ $coreScripts = @(
     'Install-Font.ps1',
     'Install-Dotfiles.ps1',
     'Inject-Terminal.ps1',
-    'Update-UserPath.ps1'
+    'Update-UserPath.ps1',
+    'Invoke-WinixInstall.ps1'
 )
 
 foreach ($scriptName in $coreScripts) {
@@ -173,68 +174,26 @@ try {
     elseif ($Silent) {
         Write-WinixLog -Level Info -Message 'Starting Project Winix silent installation...'
 
-        # --- Consent gate ---
-        $consent = Test-WinixConsentGate
-        if ($consent.HasConflicts -and -not $Force) {
-            Show-WinixConsentWarning -Conflicts $consent.Conflicts
-            Stop-Transcript | Out-Null
-            throw "Conflicts detected. Use -Force to acknowledge that existing configs will be backed up and overwritten."
+        $installParams = @{
+            InstallCore      = $InstallCore
+            InstallAdvanced  = $InstallAdvanced
+            InstallAll       = $InstallAll
+            InstallBat       = $InstallBat
+            InstallEza       = $InstallEza
+            InstallFd        = $InstallFd
+            InstallRipgrep   = $InstallRipgrep
+            InstallZellij    = $InstallZellij
+            BuildFromSource  = $BuildFromSource
+            SkipRestorePoint = $SkipRestorePoint
+            Force            = $Force
+            ScriptsDir       = $script:ScriptsDir
         }
 
-        if ($consent.HasConflicts) {
-            Show-WinixConsentWarning -Conflicts $consent.Conflicts
-            Write-WinixLog -Level Warning -Message '-Force was specified; proceeding with backups and overwrite.'
-        }
-
-        # --- System Restore Point ---
-        if (-not $SkipRestorePoint) {
-            Write-WinixLog -Level Info -Message 'Creating mandatory System Restore Point...'
-            $rp = New-WinixRestorePoint
-            if ($rp.Success) {
-                Write-WinixLog -Level Success -Message $rp.Message
-            }
-            else {
-                Write-WinixLog -Level Error -Message $rp.Message
-                Stop-Transcript | Out-Null
-                throw "Failed to create System Restore Point. Use -SkipRestorePoint to bypass (not recommended)."
-            }
-        }
-        else {
-            Write-WinixLog -Level Warning -Message 'Skipping System Restore Point creation as requested.'
-        }
-
-        # --- Core installation ---
-        if ($InstallCore -or $InstallAll) {
-            Install-Msys2
-            Install-Rust
-            Install-Brush
-            Install-Font
-            Install-Dotfiles
-            Inject-Terminal
-            Update-UserPath
-        }
-
-        # --- Advanced tools ---
-        if ($InstallBat -or $InstallEza -or $InstallFd -or $InstallRipgrep -or $InstallZellij) {
-            $targetDir = 'C:\msys64\mingw64\bin'
-            $downloaderArgs = @{ TargetDir = $targetDir }
-            if ($BuildFromSource) {
-                $downloaderArgs['BuildFromSource'] = $true
-            }
-
-            Write-WinixLog -Level Info -Message 'Installing selected advanced tools...'
-            if ($InstallBat)       { & (Join-Path $script:ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs }
-            if ($InstallEza)       { & (Join-Path $script:ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs }
-            if ($InstallFd)        { & (Join-Path $script:ScriptsDir 'downloaders\Get-Fd.ps1') @downloaderArgs }
-            if ($InstallRipgrep)   { & (Join-Path $script:ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs }
-            if ($InstallZellij)    { & (Join-Path $script:ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs }
-        }
-
-        Write-WinixLog -Level Success -Message 'Project Winix installation flow completed.'
+        Invoke-WinixInstallation @installParams
     }
     else {
         Write-WinixLog -Level Info -Message 'Launching Project Winix GUI...'
-        Show-WinixMainWindow -SchemaPath $script:MainSchema
+        Show-WinixMainWindow -SchemaPath $script:MainSchema -ScriptsDir $script:ScriptsDir
     }
 }
 catch {
