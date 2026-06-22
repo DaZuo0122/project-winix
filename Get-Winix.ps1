@@ -97,6 +97,7 @@ foreach ($path in $requiredPaths) {
 # ---------------------------------------------------------------------------
 Import-Module (Join-Path $script:ModulesDir 'Logging.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $script:ModulesDir 'Snapshot.psm1') -Force -ErrorAction Stop
+Import-Module (Join-Path $script:ModulesDir 'ConsentGate.psm1') -Force -ErrorAction Stop
 Import-Module (Join-Path $script:ModulesDir 'UI.psm1') -Force -ErrorAction Stop
 
 # ---------------------------------------------------------------------------
@@ -153,8 +154,39 @@ try {
     }
     elseif ($Silent) {
         Write-WinixLog -Level Info -Message 'Starting Project Winix silent installation...'
-        # TODO: invoke Install-WinixEnvironment (Phase 2+)
-        Write-WinixLog -Level Warning -Message 'Silent installation flow not yet implemented.'
+
+        # --- Consent gate ---
+        $consent = Test-WinixConsentGate
+        if ($consent.HasConflicts -and -not $Force) {
+            Show-WinixConsentWarning -Conflicts $consent.Conflicts
+            Stop-Transcript | Out-Null
+            throw "Conflicts detected. Use -Force to acknowledge that existing configs will be backed up and overwritten."
+        }
+
+        if ($consent.HasConflicts) {
+            Show-WinixConsentWarning -Conflicts $consent.Conflicts
+            Write-WinixLog -Level Warning -Message '-Force was specified; proceeding with backups and overwrite.'
+        }
+
+        # --- System Restore Point ---
+        if (-not $SkipRestorePoint) {
+            Write-WinixLog -Level Info -Message 'Creating mandatory System Restore Point...'
+            $rp = New-WinixRestorePoint
+            if ($rp.Success) {
+                Write-WinixLog -Level Success -Message $rp.Message
+            }
+            else {
+                Write-WinixLog -Level Error -Message $rp.Message
+                Stop-Transcript | Out-Null
+                throw "Failed to create System Restore Point. Use -SkipRestorePoint to bypass (not recommended)."
+            }
+        }
+        else {
+            Write-WinixLog -Level Warning -Message 'Skipping System Restore Point creation as requested.'
+        }
+
+        # TODO: invoke full installation orchestration (Phase 3+)
+        Write-WinixLog -Level Warning -Message 'Silent installation flow partially implemented; core installers will be wired in Phase 3.'
     }
     else {
         Write-WinixLog -Level Info -Message 'Launching Project Winix GUI...'
