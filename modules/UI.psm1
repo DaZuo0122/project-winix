@@ -175,48 +175,54 @@ function Show-WinixMainWindow {
         }
 
         # Run installation in a background runspace so the UI stays responsive.
-        $runspace = [runspacefactory]::CreateRunspace()
-        $runspace.Open()
+        $runspace = $null
+        $powershell = $null
+        $handle = $null
 
-        # Pass variables into the runspace
-        $runspace.SessionStateProxy.SetVariable('InstallParams', $installParams)
-        $runspace.SessionStateProxy.SetVariable('PSScriptRoot', $PSScriptRoot)
+        try {
+            $runspace = [runspacefactory]::CreateRunspace()
+            $runspace.Open()
+            $runspace.SessionStateProxy.SetVariable('InstallParams', $installParams)
+            $runspace.SessionStateProxy.SetVariable('PSScriptRoot', $PSScriptRoot)
 
-        $powershell = [powershell]::Create()
-        $powershell.Runspace = $runspace
+            $powershell = [powershell]::Create()
+            $powershell.Runspace = $runspace
 
-        [void]$powershell.AddScript({
-            # Re-import modules in the runspace
-            Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Logging.psm1') -Force
-            Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Snapshot.psm1') -Force
-            Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'ConsentGate.psm1') -Force
+            [void]$powershell.AddScript({
+                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Logging.psm1') -Force
+                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Snapshot.psm1') -Force
+                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'ConsentGate.psm1') -Force
 
-            . (Join-Path $InstallParams.ScriptsDir 'core\Invoke-WinixInstall.ps1')
+                . (Join-Path $InstallParams.ScriptsDir 'core\Invoke-WinixInstall.ps1')
 
-            try {
-                Invoke-WinixInstallation @InstallParams
+                try {
+                    Invoke-WinixInstallation @InstallParams
+                }
+                catch {
+                    Write-WinixLog -Level Error -Message "Installation failed: $_" -LogBox $InstallParams.LogBox
+                }
+            })
+
+            $handle = $powershell.BeginInvoke()
+
+            while (-not $handle.IsCompleted) {
+                Start-Sleep -Milliseconds 100
+                [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([action] { }, 'Render')
             }
-            catch {
-                Write-WinixLog -Level Error -Message "Installation failed: $_" -LogBox $InstallParams.LogBox
-            }
-        })
 
-        $handle = $powershell.BeginInvoke()
-
-        # Poll for completion and keep UI responsive
-        while (-not $handle.IsCompleted) {
-            Start-Sleep -Milliseconds 100
-            [System.Windows.Threading.Dispatcher]::CurrentDispatcher.Invoke([action] { }, 'Render')
+            $powershell.EndInvoke($handle) | Out-Null
+            Add-LogLine -Message 'Installation thread finished.'
         }
-
-        $powershell.EndInvoke($handle) | Out-Null
-        $powershell.Dispose()
-        $runspace.Close()
-        $runspace.Dispose()
-
-        $controls['InstallProgressBar'].IsIndeterminate = $false
-        $controls['InstallButton'].IsEnabled = $true
-        Add-LogLine -Message 'Installation thread finished.'
+        catch {
+            Add-LogLine -Message "GUI install runner failed: $_"
+        }
+        finally {
+            if ($handle) { $handle = $null }
+            if ($powershell) { $powershell.Dispose() }
+            if ($runspace) { $runspace.Close(); $runspace.Dispose() }
+            $controls['InstallProgressBar'].IsIndeterminate = $false
+            $controls['InstallButton'].IsEnabled = $true
+        }
     })
 
     # -----------------------------------------------------------------------

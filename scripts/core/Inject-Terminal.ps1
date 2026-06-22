@@ -38,7 +38,7 @@ function Get-WinixDeterministicGuid {
 }
 
 function Inject-Terminal {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [string]$SettingsPath = (Get-WinixTerminalSettingsPath),
         [string]$BackupDir = (Join-Path $env:USERPROFILE '.winix_backups'),
@@ -57,7 +57,13 @@ function Inject-Terminal {
     }
 
     if (-not (Test-Path $SettingsPath)) {
-        @{ profiles = @{ list = @() } } | ConvertTo-Json -Depth 10 | Set-Content -Path $SettingsPath -Encoding UTF8
+        if ($PSCmdlet.ShouldProcess($SettingsPath, 'Create new Windows Terminal settings file')) {
+            @{ profiles = @{ list = @() } } | ConvertTo-Json -Depth 10 | Set-Content -Path $SettingsPath -Encoding UTF8
+        }
+    }
+
+    if (-not $PSCmdlet.ShouldProcess($SettingsPath, 'Inject Winix (Brush) profile')) {
+        return
     }
 
     # 2. Backup
@@ -106,7 +112,7 @@ function Inject-Terminal {
     )
     [void]$settings['profiles']['list'].Add($winixProfile)
 
-    # 6. Optionally set as default if no defaultProfile exists
+    # 6. Ensure defaults object exists
     if (-not $settings['profiles'].ContainsKey('defaults')) {
         $settings['profiles']['defaults'] = @{}
     }

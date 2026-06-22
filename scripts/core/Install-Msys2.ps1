@@ -1,5 +1,5 @@
 function Install-Msys2 {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [string]$TargetDir = 'C:\msys64'
     )
@@ -26,13 +26,15 @@ function Install-Msys2 {
     if ($winget) {
         try {
             Write-WinixLog -Level Info -Message 'Attempting MSYS2 installation via winget...'
-            & $winget.Source install --id MSYS2.MSYS2 --location $TargetDir --accept-source-agreements --accept-package-agreements
-            if ($LASTEXITCODE -eq 0) {
-                $installedByWinget = $true
-                Write-WinixLog -Level Success -Message 'MSYS2 installed via winget.'
-            }
-            else {
-                Write-WinixLog -Level Warning -Message "winget install returned exit code $LASTEXITCODE; falling back to offline installer."
+            if ($PSCmdlet.ShouldProcess("MSYS2.MSYS2 -> $TargetDir", 'winget install')) {
+                & $winget.Source install --id MSYS2.MSYS2 --location $TargetDir --accept-source-agreements --accept-package-agreements
+                if ($LASTEXITCODE -eq 0) {
+                    $installedByWinget = $true
+                    Write-WinixLog -Level Success -Message 'MSYS2 installed via winget.'
+                }
+                else {
+                    Write-WinixLog -Level Warning -Message "winget install returned exit code $LASTEXITCODE; falling back to offline installer."
+                }
             }
         }
         catch {
@@ -48,12 +50,16 @@ function Install-Msys2 {
         $installerPath = Join-Path $env:TEMP 'msys2-installer.exe'
 
         Write-WinixLog -Level Info -Message "Downloading MSYS2 installer from $installerUrl..."
-        Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+        if ($PSCmdlet.ShouldProcess($installerPath, 'Download MSYS2 installer')) {
+            Invoke-WebRequest -Uri $installerUrl -OutFile $installerPath -UseBasicParsing
+        }
 
         Write-WinixLog -Level Info -Message 'Running MSYS2 installer silently...'
-        $process = Start-Process -FilePath $installerPath -ArgumentList "install", "--root", $TargetDir, "--confirm-command" -Wait -PassThru
-        if ($process.ExitCode -ne 0) {
-            throw "MSYS2 installer exited with code $($process.ExitCode)."
+        if ($PSCmdlet.ShouldProcess($TargetDir, 'Run MSYS2 installer')) {
+            $process = Start-Process -FilePath $installerPath -ArgumentList "install", "--root", $TargetDir, "--confirm-command" -Wait -PassThru
+            if ($process.ExitCode -ne 0) {
+                throw "MSYS2 installer exited with code $($process.ExitCode)."
+            }
         }
     }
 
@@ -64,7 +70,9 @@ function Install-Msys2 {
     }
 
     Write-WinixLog -Level Info -Message 'Updating MSYS2 package database...'
-    & $msysShell -lc "pacman -Syu --noconfirm" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+    if ($PSCmdlet.ShouldProcess('MSYS2', 'Update package database')) {
+        & $msysShell -lc "pacman -Syu --noconfirm" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+    }
 
     Write-WinixLog -Level Info -Message 'Installing MinGW64 toolchain...'
     $toolchainPackages = @(
@@ -73,7 +81,9 @@ function Install-Msys2 {
         'mingw-w64-x86_64-cmake',
         'mingw-w64-x86_64-coreutils'
     )
-    & $msysShell -lc "pacman -S --noconfirm $($toolchainPackages -join ' ')" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+    if ($PSCmdlet.ShouldProcess("MinGW64 toolchain: $($toolchainPackages -join ', ')", 'Install packages')) {
+        & $msysShell -lc "pacman -S --noconfirm $($toolchainPackages -join ' ')" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+    }
 
     # 4. Existing Git check
     $gitCommand = Get-Command 'git.exe' -ErrorAction SilentlyContinue
@@ -84,7 +94,9 @@ function Install-Msys2 {
     }
     else {
         Write-WinixLog -Level Info -Message 'Installing Git and Git-LFS from MinGW64 source...'
-        & $msysShell -lc "pacman -S --noconfirm mingw-w64-x86_64-git mingw-w64-x86_64-git-lfs" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+        if ($PSCmdlet.ShouldProcess('MinGW64 Git + Git-LFS', 'Install packages')) {
+            & $msysShell -lc "pacman -S --noconfirm mingw-w64-x86_64-git mingw-w64-x86_64-git-lfs" | ForEach-Object { Write-WinixLog -Level Info -Message $_ }
+        }
     }
 
     # 5. Verify

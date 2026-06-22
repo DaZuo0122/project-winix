@@ -1,5 +1,5 @@
 function Invoke-WinixInstallation {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [switch]$InstallCore,
         [switch]$InstallAdvanced,
@@ -28,6 +28,12 @@ function Invoke-WinixInstallation {
         $InstallFd = $true
         $InstallRipgrep = $true
         $InstallZellij = $true
+    }
+
+    $whatIfMode = $PSCmdlet.ShouldProcess('Project Winix installation', 'Execute')
+    $commonParams = @{}
+    if ($WhatIfPreference) {
+        $commonParams['WhatIf'] = $true
     }
 
     # Consent gate
@@ -80,14 +86,20 @@ function Invoke-WinixInstallation {
     # Core installation
     if ($InstallCore -or $InstallAll) {
         Write-WinixLog -Level Info -Message 'Installing Winix Core...' -LogBox $LogBox
-        Install-Msys2
-        Install-Rust
-        Install-Brush
-        Install-Font
-        Install-Dotfiles
-        Inject-Terminal
-        Update-UserPath
-        Write-WinixLog -Level Success -Message 'Winix Core installed.' -LogBox $LogBox
+        try {
+            Install-Msys2 @commonParams
+            Install-Rust @commonParams
+            Install-Brush @commonParams
+            Install-Font @commonParams
+            Install-Dotfiles @commonParams
+            Inject-Terminal @commonParams
+            Update-UserPath @commonParams
+            Write-WinixLog -Level Success -Message 'Winix Core installed.' -LogBox $LogBox
+        }
+        catch {
+            Write-WinixLog -Level Error -Message "Core installation failed: $_" -LogBox $LogBox
+            throw
+        }
     }
 
     # Advanced tools
@@ -97,14 +109,23 @@ function Invoke-WinixInstallation {
         if ($BuildFromSource) {
             $downloaderArgs['BuildFromSource'] = $true
         }
+        if ($WhatIfPreference) {
+            $downloaderArgs['WhatIf'] = $true
+        }
 
         Write-WinixLog -Level Info -Message 'Installing selected advanced tools...' -LogBox $LogBox
-        if ($InstallBat)     { & (Join-Path $ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs }
-        if ($InstallEza)     { & (Join-Path $ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs }
-        if ($InstallFd)      { & (Join-Path $ScriptsDir 'downloaders\Get-Fd.ps1') @downloaderArgs }
-        if ($InstallRipgrep) { & (Join-Path $ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs }
-        if ($InstallZellij)  { & (Join-Path $ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs }
-        Write-WinixLog -Level Success -Message 'Advanced tools installation completed.' -LogBox $LogBox
+        try {
+            if ($InstallBat)     { & (Join-Path $ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs }
+            if ($InstallEza)     { & (Join-Path $ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs }
+            if ($InstallFd)      { & (Join-Path $ScriptsDir 'downloaders\Get-Fd.ps1') @downloaderArgs }
+            if ($InstallRipgrep) { & (Join-Path $ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs }
+            if ($InstallZellij)  { & (Join-Path $ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs }
+            Write-WinixLog -Level Success -Message 'Advanced tools installation completed.' -LogBox $LogBox
+        }
+        catch {
+            Write-WinixLog -Level Error -Message "Advanced tools installation failed: $_" -LogBox $LogBox
+            throw
+        }
     }
 
     Write-WinixLog -Level Success -Message 'Project Winix installation flow completed.' -LogBox $LogBox

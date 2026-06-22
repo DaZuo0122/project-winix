@@ -1,5 +1,5 @@
 function Install-Dotfiles {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [string]$AssetsDir = (Join-Path $script:RootDir 'assets'),
         [string]$BackupDir = (Join-Path $env:USERPROFILE '.winix_backups'),
@@ -27,6 +27,11 @@ function Install-Dotfiles {
 
         if (-not (Test-Path $sourcePath)) {
             Write-WinixLog -Level Warning -Message "Asset not found, skipping: $sourcePath"
+            [void]$skippedAssets.Add($assetName)
+            continue
+        }
+
+        if (-not $PSCmdlet.ShouldProcess($destPath, "Deploy $assetName")) {
             [void]$skippedAssets.Add($assetName)
             continue
         }

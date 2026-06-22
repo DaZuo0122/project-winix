@@ -188,6 +188,9 @@ try {
             Force            = $Force
             ScriptsDir       = $script:ScriptsDir
         }
+        if ($WhatIfPreference) {
+            $installParams['WhatIf'] = $true
+        }
 
         Invoke-WinixInstallation @installParams
     }
