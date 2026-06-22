@@ -185,8 +185,24 @@ try {
             Write-WinixLog -Level Warning -Message 'Skipping System Restore Point creation as requested.'
         }
 
-        # TODO: invoke full installation orchestration (Phase 3+)
-        Write-WinixLog -Level Warning -Message 'Silent installation flow partially implemented; core installers will be wired in Phase 3.'
+        # --- Core installation ---
+        if ($InstallCore -or $InstallAll) {
+            Install-Msys2
+            Install-Rust
+            Install-Brush
+            Install-Font
+            Install-Dotfiles
+            Inject-Terminal
+            Update-UserPath
+        }
+
+        # --- Advanced tools ---
+        if ($InstallAdvanced -or $InstallAll) {
+            # TODO: Phase 5 — wire downloader/source-build invocation
+            Write-WinixLog -Level Warning -Message 'Advanced tool installation will be wired in Phase 5.'
+        }
+
+        Write-WinixLog -Level Success -Message 'Project Winix installation flow completed.'
     }
     else {
         Write-WinixLog -Level Info -Message 'Launching Project Winix GUI...'
