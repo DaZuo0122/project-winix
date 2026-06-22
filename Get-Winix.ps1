@@ -198,8 +198,18 @@ try {
 
         # --- Advanced tools ---
         if ($InstallAdvanced -or $InstallAll) {
-            # TODO: Phase 5 — wire downloader/source-build invocation
-            Write-WinixLog -Level Warning -Message 'Advanced tool installation will be wired in Phase 5.'
+            $targetDir = 'C:\msys64\mingw64\bin'
+            $downloaderArgs = @{ TargetDir = $targetDir }
+            if ($BuildFromSource) {
+                $downloaderArgs['BuildFromSource'] = $true
+            }
+
+            Write-WinixLog -Level Info -Message 'Installing advanced arsenal...'
+            & (Join-Path $script:ScriptsDir 'downloaders\Get-Bat.ps1') @downloaderArgs
+            & (Join-Path $script:ScriptsDir 'downloaders\Get-Eza.ps1') @downloaderArgs
+            & (Join-Path $script:ScriptsDir 'downloaders\Get-Ripgrep.ps1') @downloaderArgs
+            # Zellij is optional and may require source build on Windows; keep it last.
+            & (Join-Path $script:ScriptsDir 'downloaders\Get-Zellij.ps1') @downloaderArgs
         }
 
         Write-WinixLog -Level Success -Message 'Project Winix installation flow completed.'
