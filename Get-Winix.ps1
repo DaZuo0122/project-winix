@@ -5,6 +5,7 @@ param (
     [switch]$Silent,
     [switch]$Force,
     [switch]$Wait,
+    [switch]$DryRun,
 
     # Tiered installation
     [switch]$InstallCore,
@@ -43,7 +44,7 @@ $script:DefaultLogPath = Join-Path $script:LogsDir 'Winix.log'
 
 $script:ControlParams = @(
     'WhatIf', 'Confirm', 'Verbose', 'Debug',
-    'Silent', 'Force', 'Wait',
+    'Silent', 'Force', 'Wait', 'DryRun',
     'InstallCore', 'InstallAdvanced', 'InstallAll',
     'InstallBat', 'InstallEza', 'InstallFd', 'InstallRipgrep', 'InstallZellij',
     'BuildFromSource', 'SkipRestorePoint',
@@ -188,8 +189,8 @@ try {
             Force            = $Force
             ScriptsDir       = $script:ScriptsDir
         }
-        if ($WhatIfPreference) {
-            $installParams['WhatIf'] = $true
+        if ($DryRun -or $WhatIfPreference) {
+            $installParams['DryRun'] = $true
         }
 
         Invoke-WinixInstallation @installParams

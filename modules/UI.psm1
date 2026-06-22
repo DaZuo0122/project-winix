@@ -36,6 +36,7 @@ function Show-WinixMainWindow {
         'InstallFdCheckBox',
         'InstallRipgrepCheckBox',
         'InstallZellijCheckBox',
+        'DryRunCheckBox',
         'WaitCheckBox',
         'BuildFromSourceCheckBox',
         'SkipRestorePointCheckBox',
@@ -167,6 +168,7 @@ function Show-WinixMainWindow {
             InstallFd          = $controls['InstallFdCheckBox'].IsChecked -eq $true
             InstallRipgrep     = $controls['InstallRipgrepCheckBox'].IsChecked -eq $true
             InstallZellij      = $controls['InstallZellijCheckBox'].IsChecked -eq $true
+            DryRun             = $controls['DryRunCheckBox'].IsChecked -eq $true
             BuildFromSource    = $controls['BuildFromSourceCheckBox'].IsChecked -eq $true
             SkipRestorePoint   = $controls['SkipRestorePointCheckBox'].IsChecked -eq $true
             Force              = $true  # Consent checkbox already acknowledges
@@ -189,9 +191,9 @@ function Show-WinixMainWindow {
             $powershell.Runspace = $runspace
 
             [void]$powershell.AddScript({
-                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Logging.psm1') -Force
-                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'Snapshot.psm1') -Force
-                Import-Module (Join-Path $PSScriptRoot '..' 'modules' 'ConsentGate.psm1') -Force
+                Import-Module (Join-Path $PSScriptRoot '..\modules\Logging.psm1') -Force
+                Import-Module (Join-Path $PSScriptRoot '..\modules\Snapshot.psm1') -Force
+                Import-Module (Join-Path $PSScriptRoot '..\modules\ConsentGate.psm1') -Force
 
                 . (Join-Path $InstallParams.ScriptsDir 'core\Invoke-WinixInstall.ps1')
 
@@ -235,7 +237,7 @@ function Add-WinixLogLine {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [System.Windows.Controls.TextBox]$LogBox,
+        [object]$LogBox,
 
         [Parameter(Mandatory)]
         [string]$Message

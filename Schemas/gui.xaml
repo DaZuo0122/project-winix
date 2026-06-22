@@ -114,8 +114,9 @@
 
                     <GroupBox Header="Execution Options">
                         <StackPanel>
-                            <CheckBox x:Name="SilentCheckBox" Content="Silent mode (no GUI)" IsEnabled="False"
-                                      ToolTip="Not applicable when launching the GUI"/>
+                            <CheckBox x:Name="DryRunCheckBox" Content="Dry run"
+                                      Foreground="#87ceeb"
+                                      ToolTip="Log planned actions without making any system changes"/>
                             <CheckBox x:Name="WaitCheckBox" Content="Wait for key press on exit"
                                       ToolTip="Keep the window open after installation completes"/>
                         </StackPanel>

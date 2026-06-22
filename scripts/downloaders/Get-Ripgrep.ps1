@@ -8,8 +8,8 @@ param (
     [switch]$BuildFromSource
 )
 
-Import-Module (Join-Path $PSScriptRoot '..' '..' 'modules' 'Logging.psm1') -Force
-Import-Module (Join-Path $PSScriptRoot '..' '..' 'modules' 'Downloader.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '..\..\modules\Logging.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '..\..\modules\Downloader.psm1') -Force
 
 $toolName = 'ripgrep'
 $exePath = Join-Path $TargetDir 'rg.exe'

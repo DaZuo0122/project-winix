@@ -8,8 +8,8 @@ param (
     [switch]$BuildFromSource
 )
 
-Import-Module (Join-Path $PSScriptRoot '..' '..' 'modules' 'Logging.psm1') -Force
-Import-Module (Join-Path $PSScriptRoot '..' '..' 'modules' 'Downloader.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '..\..\modules\Logging.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '..\..\modules\Downloader.psm1') -Force
 
 $toolName = 'fd-find'
 $exePath = Join-Path $TargetDir 'fd.exe'

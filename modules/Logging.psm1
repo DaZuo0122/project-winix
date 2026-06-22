@@ -19,7 +19,7 @@ function Write-WinixLog {
         [Parameter(Mandatory)]
         [string]$Message,
 
-        [System.Windows.Controls.TextBox]$LogBox
+        [object]$LogBox
     )
 
     $timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
@@ -75,7 +75,7 @@ function Clear-WinixLogBuffer {
 function Initialize-WinixLogging {
     [CmdletBinding()]
     param (
-        [string]$LogDir = (Join-Path $PSScriptRoot '..' 'Logs')
+        [string]$LogDir = (Join-Path (Join-Path $PSScriptRoot '..') 'Logs')
     )
 
     if (-not (Test-Path $LogDir)) {
